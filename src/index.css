@@ -1,0 +1,60 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-bg: #0b0f14;
+  --color-surface: #141b23;
+  --color-surface2: #1d2733;
+  --color-line: #26313d;
+  --color-accent: #d7ff3e;
+  --color-accent-dim: #9fbf2c;
+  --color-muted: #8b98a5;
+  --color-danger: #ff6b6b;
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, sans-serif;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    background: var(--color-bg);
+  }
+
+  body {
+    margin: 0;
+    background: var(--color-bg);
+    color: #f5f7fa;
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior-y: none;
+  }
+
+  button {
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+
+  input,
+  select,
+  textarea {
+    font-size: 16px; /* iOS не зумит при фокусе */
+  }
+
+  input[type='number']::-webkit-inner-spin-button,
+  input[type='number']::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  ::selection {
+    background: var(--color-accent);
+    color: #0b0f14;
+  }
+}
+
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
