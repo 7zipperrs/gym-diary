@@ -14,7 +14,7 @@ interface Props {
 }
 
 const REST_KEY = 'gymdiary.restEnd';
-const DEFAULT_REST = 90;
+const DEFAULT_REST = 120;
 
 export default function WorkoutScreen({ workout, loading, onStart, onFinish }: Props) {
   const workoutId = workout?.id;
