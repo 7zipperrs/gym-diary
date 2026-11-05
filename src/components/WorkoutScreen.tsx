@@ -145,9 +145,9 @@ export default function WorkoutScreen({ workout, loading, onStart, onFinish }: P
   }
 
   return (
-    <div className="px-4 pt-4">
+    <div className="px-4 pb-24 pt-4">
       <div className="rounded-2xl border border-line bg-surface p-4">
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex items-start justify-between gap-2">
           <div>
             <p className="text-[11px] uppercase tracking-wider text-muted">
               {formatDate(workout.date)} · идёт
@@ -156,13 +156,23 @@ export default function WorkoutScreen({ workout, loading, onStart, onFinish }: P
               {formatDuration(now - workout.startedAt)}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={onFinish}
-            className="rounded-xl bg-accent px-4 py-2.5 text-[13px] font-bold text-bg transition active:scale-95"
-          >
-            Завершить
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setPickerOpen(true)}
+              className="flex items-center gap-1 rounded-xl border border-line bg-surface2 px-3 py-2.5 text-[13px] font-semibold text-f5f7fa transition active:scale-95"
+            >
+              <Plus size={16} className="text-accent" />
+              Упражнение
+            </button>
+            <button
+              type="button"
+              onClick={onFinish}
+              className="rounded-xl bg-accent px-4 py-2.5 text-[13px] font-bold text-bg transition active:scale-95"
+            >
+              Завершить
+            </button>
+          </div>
         </div>
         <div className="mt-4 grid grid-cols-2 gap-2">
           <div className="rounded-xl bg-surface2 px-3 py-2">
@@ -203,9 +213,9 @@ export default function WorkoutScreen({ workout, loading, onStart, onFinish }: P
       <button
         type="button"
         onClick={() => setPickerOpen(true)}
-        className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-line bg-surface/40 py-3.5 text-sm font-medium text-muted transition active:scale-[0.99]"
+        className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-line bg-surface/60 py-3.5 text-sm font-medium text-muted transition active:scale-[0.99]"
       >
-        <Plus size={18} />
+        <Plus size={18} className="text-accent" />
         Добавить упражнение
       </button>
 
@@ -215,6 +225,11 @@ export default function WorkoutScreen({ workout, loading, onStart, onFinish }: P
           onPick={(id) => {
             setExtraIds((prev) => [...prev, id]);
             setPickerOpen(false);
+            setTimeout(() => {
+              document
+                .getElementById(`exercise-card-${id}`)
+                ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 80);
           }}
         />
       )}
@@ -259,7 +274,7 @@ function ExerciseCard({ exercise, sets, previous, onAdd, onDelete }: CardProps) 
   }
 
   return (
-    <div className="rounded-2xl border border-line bg-surface p-4">
+    <div id={`exercise-card-${exercise.id}`} className="rounded-2xl border border-line bg-surface p-4">
       <div className="flex items-start justify-between gap-2">
         <div>
           <h3 className="text-[15px] font-semibold leading-tight">{exercise.name}</h3>
@@ -299,22 +314,26 @@ function ExerciseCard({ exercise, sets, previous, onAdd, onDelete }: CardProps) 
       )}
 
       <div className="mt-3 flex items-center gap-2">
-        <label className="relative flex-1">
-          <input
-            type="number"
-            inputMode="decimal"
-            step="0.5"
-            min="0"
-            value={weight}
-            onChange={(e) => setWeight(e.target.value)}
-            placeholder="0"
-            className="w-full rounded-xl border border-line bg-surface2 py-2.5 pl-3 pr-8 text-center text-[15px] font-semibold tabular-nums outline-none focus:border-accent/60"
-          />
-          <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[11px] text-muted">
-            кг
-          </span>
-        </label>
-        <span className="text-muted">×</span>
+        {exercise.type !== 'time' && (
+          <>
+            <label className="relative flex-1">
+              <input
+                type="number"
+                inputMode="decimal"
+                step="0.5"
+                min="0"
+                value={weight}
+                onChange={(e) => setWeight(e.target.value)}
+                placeholder="0"
+                className="w-full rounded-xl border border-line bg-surface2 py-2.5 pl-3 pr-8 text-center text-[15px] font-semibold tabular-nums outline-none focus:border-accent/60"
+              />
+              <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[11px] text-muted">
+                кг
+              </span>
+            </label>
+            <span className="text-muted">×</span>
+          </>
+        )}
         <label className="relative flex-1">
           <input
             type="number"
