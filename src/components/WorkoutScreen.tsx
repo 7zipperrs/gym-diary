@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { Dumbbell, Plus, Timer, X } from 'lucide-react';
+import { BellRing, Dumbbell, Plus, Timer, X } from 'lucide-react';
 import type { Exercise, Workout, WorkoutSet } from '../types';
 import { addSet, db, setVolume } from '../db';
 import { formatDate, formatDuration, formatNumber, formatTonnage } from '../lib/format';
+import { playRestFinishedChime, unlockAudio } from '../lib/sound';
 import ExercisePicker from './ExercisePicker';
 
 interface Props {
@@ -23,7 +24,8 @@ export default function WorkoutScreen({ workout, loading, onStart, onFinish }: P
   const [now, setNow] = useState(Date.now());
   const [restEnd, setRestEnd] = useState(() => {
     const raw = Number(localStorage.getItem(REST_KEY));
-    return Number.isFinite(raw) && raw > Date.now() ? raw : 0;
+    // Не показываем старый таймер, если прошло больше 15 минут
+    return Number.isFinite(raw) && raw > Date.now() - 15 * 60 * 1000 ? raw : 0;
   });
 
   const sets = useLiveQuery(
@@ -265,6 +267,7 @@ function ExerciseCard({ exercise, sets, previous, onAdd, onDelete }: CardProps) 
 
   async function submit() {
     if (!valid || saving) return;
+    unlockAudio();
     setSaving(true);
     try {
       await onAdd(weightNum, repsNum);
@@ -378,19 +381,64 @@ function RestTimer({
   onStop: () => void;
 }) {
   const [now, setNow] = useState(Date.now());
+  const beepedForEndRef = useRef<number>(end <= Date.now() ? end : 0);
 
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 250);
     return () => clearInterval(t);
   }, []);
 
-  if (end <= now) return null;
+  useEffect(() => {
+    if (end > 0 && now >= end && beepedForEndRef.current !== end) {
+      beepedForEndRef.current = end;
+      playRestFinishedChime();
+    }
+  }, [end, now]);
+
+  if (end <= 0) return null;
+
+  const isFinished = now >= end;
   const left = Math.max(0, Math.ceil((end - now) / 1000));
+  const overtime = Math.max(0, Math.floor((now - end) / 1000));
 
   function shift(deltaMs: number) {
-    const next = Math.max(Date.now() + 1000, end + deltaMs);
+    unlockAudio();
+    const base = end > Date.now() ? end : Date.now();
+    const next = Math.max(Date.now() + 1000, base + deltaMs);
     localStorage.setItem(REST_KEY, String(next));
     onChange(next);
+  }
+
+  if (isFinished) {
+    return (
+      <div className="fixed bottom-[calc(env(safe-area-inset-bottom)+72px)] left-1/2 z-40 w-full max-w-[560px] -translate-x-1/2 px-4">
+        <div className="flex items-center gap-3 rounded-2xl border border-accent bg-accent px-4 py-3 text-bg shadow-lg shadow-accent/25">
+          <BellRing size={20} className="shrink-0 animate-bounce" />
+          <div className="flex-1">
+            <p className="text-[13px] font-extrabold uppercase tracking-wide leading-tight">
+              Пора в подход!
+            </p>
+            <p className="text-[11px] font-semibold tabular-nums opacity-80">
+              Отдых окончен · +{formatDuration(overtime * 1000)}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => shift(30000)}
+            className="rounded-xl bg-bg/15 px-3 py-1.5 text-[12px] font-bold text-bg transition active:scale-95"
+          >
+            +30 сек
+          </button>
+          <button
+            type="button"
+            onClick={onStop}
+            className="rounded-xl bg-bg px-3.5 py-1.5 text-[12px] font-bold text-accent transition active:scale-95"
+          >
+            Ок
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (
