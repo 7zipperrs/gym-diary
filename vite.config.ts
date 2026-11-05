@@ -4,6 +4,7 @@ import tailwindcss from '@tailwindcss/vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
+  base: './',
   plugins: [
     react(),
     tailwindcss(),
@@ -16,16 +17,16 @@ export default defineConfig({
         short_name: 'Дневник',
         description: 'Личный дневник тренировок: упражнения, подходы, вес и прогресс',
         lang: 'ru',
-        start_url: '/',
-        scope: '/',
+        start_url: './',
+        scope: './',
         display: 'standalone',
         orientation: 'portrait',
         background_color: '#0b0f14',
         theme_color: '#0b0f14',
         icons: [
-          { src: '/icon-180.png', sizes: '180x180', type: 'image/png' },
-          { src: '/icon-512.png', sizes: '512x512', type: 'image/png' },
-          { src: '/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' }
+          { src: 'icon-180.png', sizes: '180x180', type: 'image/png' },
+          { src: 'icon-512.png', sizes: '512x512', type: 'image/png' },
+          { src: 'icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' }
         ]
       },
       workbox: {
