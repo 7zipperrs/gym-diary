@@ -39,19 +39,22 @@ export default function ProgressScreen() {
     };
   }, []);
 
-  const exercisesWithData = useMemo(() => {
-    if (!data) return new Set<number>();
-    return new Set(data.sets.map((s) => s.exerciseId));
+  const availableExercises = useMemo(() => {
+    if (!data) return [];
+    const finishedIds = new Set(data.workouts.map((w) => w.id as number));
+    const withData = new Set(
+      data.sets.filter((s) => finishedIds.has(s.workoutId)).map((s) => s.exerciseId)
+    );
+    return data.exercises.filter((e) => e.id !== undefined && withData.has(e.id));
   }, [data]);
 
   const effectiveId = useMemo(() => {
-    if (!data) return null;
-    if (exerciseId && data.exercises.some((e) => e.id === exerciseId)) return exerciseId;
-    const firstWithData = data.exercises.find(
-      (e) => e.id && exercisesWithData.has(e.id)
-    );
-    return firstWithData?.id ?? data.exercises[0]?.id ?? null;
-  }, [data, exerciseId, exercisesWithData]);
+    if (availableExercises.length === 0) return null;
+    if (exerciseId && availableExercises.some((e) => e.id === exerciseId)) {
+      return exerciseId;
+    }
+    return availableExercises[0]?.id ?? null;
+  }, [availableExercises, exerciseId]);
 
   const sessions = useMemo<Session[]>(() => {
     if (!data || !effectiveId) return [];
@@ -106,23 +109,24 @@ export default function ProgressScreen() {
 
   return (
     <div className="p-4">
-      <label className="relative block">
-        <select
-          value={effectiveId ?? ''}
-          onChange={(e) => setExerciseId(Number(e.target.value))}
-          className="w-full appearance-none rounded-xl border border-line bg-surface px-3 py-3 text-[14px] font-medium outline-none focus:border-accent/60"
-        >
-          {data.exercises.map((e) => (
-            <option key={e.id} value={e.id}>
-              {e.name}
-              {exercisesWithData.has(e.id as number) ? '' : ' — нет данных'}
-            </option>
-          ))}
-        </select>
-        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted">
-          ▾
-        </span>
-      </label>
+      {availableExercises.length > 0 && (
+        <label className="relative block">
+          <select
+            value={effectiveId ?? ''}
+            onChange={(e) => setExerciseId(Number(e.target.value))}
+            className="w-full appearance-none rounded-xl border border-line bg-surface px-3 py-3 text-[14px] font-medium outline-none focus:border-accent/60"
+          >
+            {availableExercises.map((e) => (
+              <option key={e.id} value={e.id}>
+                {e.name}
+              </option>
+            ))}
+          </select>
+          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted">
+            ▾
+          </span>
+        </label>
+      )}
 
       {sessions.length === 0 ? (
         <div className="mt-4 rounded-2xl border border-dashed border-line p-8 text-center">
