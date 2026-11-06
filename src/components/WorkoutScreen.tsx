@@ -321,6 +321,9 @@ export default function WorkoutScreen({ workout, loading, onStart, onFinish }: P
 
       {pickerOpen && (
         <ExercisePicker
+          workoutId={workoutId}
+          workoutName={workoutTitle}
+          alreadyAddedIds={orderedIds}
           onClose={() => setPickerOpen(false)}
           onPick={(id) => {
             setExtraIds((prev) => [...prev, id]);
