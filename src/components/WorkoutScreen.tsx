@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { BellRing, Check, Dumbbell, Pencil, Plus, Timer, X } from 'lucide-react';
+import { BellRing, Check, Dumbbell, Pencil, Plus, Timer, Trash2, X } from 'lucide-react';
 import type { Exercise, Workout, WorkoutSet } from '../types';
 import {
   addSet,
@@ -144,6 +144,32 @@ export default function WorkoutScreen({ workout, loading, onStart, onFinish }: P
     if (!workoutId) return;
     await addSet({ workoutId, exerciseId, weight, reps });
     startRest();
+  }
+
+  async function handleRemoveExercise(exercise: Exercise, setsCount: number) {
+    if (!exercise.id) return;
+    if (
+      setsCount > 0 &&
+      !window.confirm(
+        `Убрать «${exercise.name}» и записанные подходы (${setsCount}) из текущей тренировки?`
+      )
+    ) {
+      return;
+    }
+    if (workoutId && setsCount > 0) {
+      await db.sets
+        .where('[workoutId+exerciseId]')
+        .equals([workoutId, exercise.id])
+        .delete();
+    }
+    setExtraIds((prev) => prev.filter((id) => id !== exercise.id));
+    setDoneIds((prev) => {
+      const next = prev.filter((id) => id !== exercise.id);
+      if (workoutId) {
+        localStorage.setItem(`gymdiary.done.${workoutId}`, JSON.stringify(next));
+      }
+      return next;
+    });
   }
 
   if (loading) {
@@ -292,15 +318,19 @@ export default function WorkoutScreen({ workout, loading, onStart, onFinish }: P
         {orderedIds.map((id) => {
           const exercise = exerciseMap.get(id);
           if (!exercise) return null;
+          const exerciseSets = (sets ?? [])
+            .filter((s) => s.exerciseId === id)
+            .sort((a, b) => a.order - b.order);
           return (
             <ExerciseCard
               key={id}
               exercise={exercise}
               done={doneIds.includes(id)}
               onToggleDone={() => toggleExerciseDone(id)}
-              sets={(sets ?? [])
-                .filter((s) => s.exerciseId === id)
-                .sort((a, b) => a.order - b.order)}
+              onRemoveExercise={() =>
+                void handleRemoveExercise(exercise, exerciseSets.length)
+              }
+              sets={exerciseSets}
               previous={previousByExercise?.[id] ?? []}
               onAdd={(weight, reps) => handleAddSet(id, weight, reps)}
               onUpdate={(setId, weight, reps) => updateSet(setId, { weight, reps })}
@@ -348,6 +378,7 @@ interface CardProps {
   exercise: Exercise;
   done: boolean;
   onToggleDone: () => void;
+  onRemoveExercise: () => void;
   sets: WorkoutSet[];
   previous: WorkoutSet[];
   onAdd: (weight: number, reps: number) => Promise<void>;
@@ -359,6 +390,7 @@ function ExerciseCard({
   exercise,
   done,
   onToggleDone,
+  onRemoveExercise,
   sets,
   previous,
   onAdd,
@@ -431,19 +463,40 @@ function ExerciseCard({
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={onToggleDone}
-          aria-label={done ? 'Развернуть упражнение' : 'Завершить упражнение'}
-          className={`flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold transition active:scale-95 ${
-            done
-              ? 'bg-accent text-bg'
-              : 'border border-line bg-surface2 text-muted'
-          }`}
-        >
-          <Check size={13} strokeWidth={2.6} />
-          {done ? 'Готово' : 'Завершить'}
-        </button>
+        <div className="flex shrink-0 items-center gap-1.5">
+          {sets.length > 0 && (
+            <button
+              type="button"
+              onClick={onToggleDone}
+              aria-label={done ? 'Развернуть упражнение' : 'Завершить упражнение'}
+              className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold transition active:scale-95 ${
+                done
+                  ? 'bg-accent text-bg'
+                  : 'border border-line bg-surface2 text-muted'
+              }`}
+            >
+              <Check size={13} strokeWidth={2.6} />
+              {done ? 'Готово' : 'Завершить'}
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={onRemoveExercise}
+            aria-label="Убрать упражнение из тренировки"
+            className={`flex items-center gap-1 rounded-full border border-line bg-surface2 text-[11px] font-medium text-muted transition active:scale-95 active:text-danger ${
+              sets.length === 0 ? 'px-2.5 py-1' : 'p-1.5'
+            }`}
+          >
+            {sets.length === 0 ? (
+              <>
+                <X size={13} />
+                Убрать
+              </>
+            ) : (
+              <Trash2 size={13} />
+            )}
+          </button>
+        </div>
       </div>
 
       {!done && previous.length > 0 && (
