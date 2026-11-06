@@ -2,14 +2,21 @@ import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { ArrowLeft, ChevronRight, Clock, Layers, Trash2, Weight } from 'lucide-react';
 import type { Exercise, Workout, WorkoutSet } from '../types';
-import { db, setVolume } from '../db';
-import { formatDate, formatDuration, formatNumber, formatTonnage } from '../lib/format';
+import { db, setVolume, updateWorkoutName } from '../db';
+import {
+  WORKOUT_PRESETS,
+  formatDate,
+  formatDuration,
+  formatNumber,
+  formatTonnage
+} from '../lib/format';
 
 interface HistoryItem {
   workout: Workout;
   sets: WorkoutSet[];
   volume: number;
   exerciseCount: number;
+  exerciseNames: string[];
 }
 
 export default function HistoryScreen() {
@@ -38,11 +45,16 @@ export default function HistoryScreen() {
         const ws = (setsByWorkout.get(w.id as number) ?? []).sort(
           (a, b) => a.order - b.order
         );
+        const uniqueExerciseIds = [...new Set(ws.map((s) => s.exerciseId))];
+        const exerciseNames = uniqueExerciseIds
+          .map((id) => exerciseMap.get(id)?.name)
+          .filter((n): n is string => Boolean(n));
         return {
           workout: w,
           sets: ws,
           volume: ws.reduce((sum, s) => sum + setVolume(s), 0),
-          exerciseCount: new Set(ws.map((s) => s.exerciseId)).size
+          exerciseCount: uniqueExerciseIds.length,
+          exerciseNames
         };
       });
 
@@ -85,7 +97,7 @@ export default function HistoryScreen() {
         </div>
       )}
 
-      <div className="space-y-2">
+      <div className="space-y-2.5">
         {data.items.map((item) => {
           const w = item.workout;
           return (
@@ -95,14 +107,19 @@ export default function HistoryScreen() {
               onClick={() => setSelectedId(w.id as number)}
               className="flex w-full items-center gap-3 rounded-2xl border border-line bg-surface p-4 text-left transition active:scale-[0.99]"
             >
-              <div className="flex-1">
-                <p className="text-[11px] uppercase tracking-wider text-muted">
+              <div className="min-w-0 flex-1">
+                <p className="text-[11px] font-medium uppercase tracking-wider text-accent">
                   {formatDate(w.date)}
                 </p>
-                <p className="mt-0.5 text-[15px] font-semibold">{w.name}</p>
-                <div className="mt-1.5 flex items-center gap-3 text-[12px] text-muted">
+                <p className="mt-0.5 truncate text-[16px] font-semibold">{w.name}</p>
+                {item.exerciseNames.length > 0 && (
+                  <p className="mt-0.5 truncate text-[12px] text-muted">
+                    {item.exerciseNames.join(' · ')}
+                  </p>
+                )}
+                <div className="mt-2 flex items-center gap-3 text-[12px] text-muted">
                   <span className="flex items-center gap-1">
-                    <Layers size={13} /> {item.sets.length}
+                    <Layers size={13} /> {item.sets.length} подх.
                   </span>
                   <span className="flex items-center gap-1">
                     <Weight size={13} /> {formatTonnage(item.volume)}
@@ -114,7 +131,7 @@ export default function HistoryScreen() {
                   )}
                 </div>
               </div>
-              <ChevronRight size={18} className="text-muted" />
+              <ChevronRight size={18} className="shrink-0 text-muted" />
             </button>
           );
         })}
@@ -133,11 +150,20 @@ function WorkoutDetails({
   onBack: () => void;
 }) {
   const { workout, sets } = item;
+  const [title, setTitle] = useState(workout.name);
+
   const groups = new Map<number, WorkoutSet[]>();
   for (const s of sets) {
     const list = groups.get(s.exerciseId) ?? [];
     list.push(s);
     groups.set(s.exerciseId, list);
+  }
+
+  async function saveTitle(next: string) {
+    setTitle(next);
+    if (workout.id) {
+      await updateWorkoutName(workout.id, next);
+    }
   }
 
   async function remove() {
@@ -159,10 +185,35 @@ function WorkoutDetails({
       </button>
 
       <div className="rounded-2xl border border-line bg-surface p-4">
-        <p className="text-[11px] uppercase tracking-wider text-muted">
+        <p className="text-[11px] font-medium uppercase tracking-wider text-accent">
           {formatDate(workout.date)}
         </p>
-        <h2 className="mt-0.5 text-xl font-semibold">{workout.name}</h2>
+        <input
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          onBlur={() => void saveTitle(title)}
+          placeholder="Название тренировки"
+          className="mt-1.5 w-full rounded-xl border border-line bg-surface2 px-3 py-2 text-[16px] font-semibold outline-none focus:border-accent/60"
+        />
+        <div className="no-scrollbar mt-2 flex gap-1.5 overflow-x-auto pb-0.5">
+          {WORKOUT_PRESETS.map((preset) => {
+            const active = title.trim().toLowerCase() === preset.toLowerCase();
+            return (
+              <button
+                key={preset}
+                type="button"
+                onClick={() => void saveTitle(preset)}
+                className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-medium transition ${
+                  active
+                    ? 'bg-accent text-bg'
+                    : 'border border-line bg-surface2 text-muted'
+                }`}
+              >
+                {preset}
+              </button>
+            );
+          })}
+        </div>
         <div className="mt-3 grid grid-cols-3 gap-2 text-center">
           <Stat label="Подходы" value={String(item.sets.length)} />
           <Stat label="Тоннаж" value={formatTonnage(item.volume)} />

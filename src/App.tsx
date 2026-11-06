@@ -24,8 +24,8 @@ export default function App() {
   );
   const activeWorkout = activeWorkouts?.[0] ?? null;
 
-  async function handleStart() {
-    await startWorkout();
+  async function handleStart(name?: string) {
+    await startWorkout(name);
     setTab('workout');
   }
 
@@ -39,6 +39,7 @@ export default function App() {
     }
     await finishWorkout(activeWorkout.id);
     localStorage.removeItem('gymdiary.restEnd');
+    localStorage.removeItem(`gymdiary.done.${activeWorkout.id}`);
     setTab('workout');
   }
 

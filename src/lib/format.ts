@@ -3,9 +3,10 @@ import { ru } from 'date-fns/locale';
 
 export function formatDate(iso: string): string {
   const date = new Date(`${iso}T12:00:00`);
-  if (isToday(date)) return 'Сегодня';
-  if (isYesterday(date)) return 'Вчера';
-  return format(date, 'd MMM, EE', { locale: ru });
+  const full = format(date, 'dd.MM.yyyy, EEE', { locale: ru });
+  if (isToday(date)) return `Сегодня · ${full}`;
+  if (isYesterday(date)) return `Вчера · ${full}`;
+  return full;
 }
 
 export function formatShortDate(iso: string): string {
@@ -39,4 +40,13 @@ export const MUSCLE_GROUPS = [
   'Руки',
   'Пресс',
   'Другое'
+] as const;
+
+export const WORKOUT_PRESETS = [
+  'Грудь, трицепс',
+  'Спина, бицепс',
+  'Ноги, плечи',
+  'Кардио',
+  'Фулбоди',
+  'Руки, пресс'
 ] as const;

@@ -32,11 +32,25 @@ export function todayISO(): string {
   return `${d.getFullYear()}-${m}-${day}`;
 }
 
-export async function startWorkout(): Promise<number> {
+export async function startWorkout(name = 'Тренировка'): Promise<number> {
   return db.workouts.add({
     date: todayISO(),
     startedAt: Date.now(),
-    name: 'Тренировка'
+    name: name.trim() || 'Тренировка'
+  });
+}
+
+export async function updateWorkoutName(workoutId: number, name: string): Promise<void> {
+  await db.workouts.update(workoutId, { name: name.trim() || 'Тренировка' });
+}
+
+export async function updateSet(
+  setId: number,
+  input: { weight: number; reps: number }
+): Promise<void> {
+  await db.sets.update(setId, {
+    weight: input.weight,
+    reps: input.reps
   });
 }
 
